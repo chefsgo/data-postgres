@@ -8,6 +8,7 @@ import (
 
 	. "github.com/chefsgo/base"
 	"github.com/chefsgo/chef"
+	"github.com/chefsgo/data"
 )
 
 type (
@@ -17,14 +18,14 @@ type (
 )
 
 //创建对象
-func (table *PostgresTable) Create(data Map) Map {
+func (table *PostgresTable) Create(dddd Map) Map {
 	table.base.lastError = nil
 
 	// var err error
 
 	//按字段生成值
 	value := Map{}
-	errm := chef.Mapping(table.fields, data, value, false, false)
+	errm := chef.Mapping(table.fields, dddd, value, false, false)
 	if errm.Fail() {
 		table.base.errorHandler("data.create.parse", errm, errm.Args, table.name, value)
 		return nil
@@ -72,13 +73,13 @@ func (table *PostgresTable) Create(data Map) Map {
 	value[table.key] = id
 
 	//触发器
-	table.base.trigger(chef.DataCreateTrigger, Map{"base": table.base.name, "table": table.name, "entity": value})
+	table.base.trigger(data.CreateTrigger, Map{"base": table.base.name, "table": table.name, "entity": value})
 
 	return value
 }
 
 //修改对象
-func (table *PostgresTable) Change(item Map, data Map) Map {
+func (table *PostgresTable) Change(item Map, dddd Map) Map {
 	table.base.lastError = nil
 
 	if item == nil || item[table.key] == nil {
@@ -87,13 +88,13 @@ func (table *PostgresTable) Change(item Map, data Map) Map {
 	}
 
 	//记录修改时间
-	if _, ok := table.fields["changed"]; ok && data["changed"] == nil {
-		data["changed"] = time.Now()
+	if _, ok := table.fields["changed"]; ok && dddd["changed"] == nil {
+		dddd["changed"] = time.Now()
 	}
 
 	//按字段生成值
 	value := Map{}
-	errm := chef.Mapping(table.fields, data, value, true, false)
+	errm := chef.Mapping(table.fields, dddd, value, true, false)
 	if errm.Fail() {
 		table.base.errorHandler("data.change.parse", errm, table.name)
 		return nil
@@ -103,7 +104,7 @@ func (table *PostgresTable) Change(item Map, data Map) Map {
 	//需要预处理一下
 	newValue := table.base.packing(value)
 
-	if inc, ok := data[INC]; ok {
+	if inc, ok := dddd[INC]; ok {
 		newValue[INC] = inc
 	}
 
@@ -179,7 +180,7 @@ func (table *PostgresTable) Change(item Map, data Map) Map {
 		newItem[k] = v
 	}
 
-	table.base.trigger(chef.DataChangeTrigger, Map{"base": table.base.name, "table": table.name, "entity": newItem, "before": item, "after": newItem})
+	table.base.trigger(data.ChangeTrigger, Map{"base": table.base.name, "table": table.name, "entity": newItem, "before": item, "after": newItem})
 
 	return newItem
 }
@@ -239,9 +240,9 @@ func (table *PostgresTable) Change(item Map, data Map) Map {
 //
 //	//注意这里，如果手动提交事务， 那这里直接返回，是不需要提交的
 //	if table.base.manual {
-//		table.base.trigger(chef.DataRemoveTrigger, Map{"base": table.base.name, "table": table.name, "entity": items[0], "entities": items})
+//		table.base.trigger(data.RemoveTrigger, Map{"base": table.base.name, "table": table.name, "entity": items[0], "entities": items})
 //	} else {
-//		chef.Trigger(chef.DataRemoveTrigger, Map{"base": table.base.name, "table": table.name, "entity": items[0], "entities": items})
+//		data.Trigger(data.RemoveTrigger, Map{"base": table.base.name, "table": table.name, "entity": items[0], "entities": items})
 //	}
 //
 //	return affected
@@ -301,9 +302,9 @@ func (table *PostgresTable) Change(item Map, data Map) Map {
 //
 //	//注意这里，如果手动提交事务， 那这里直接返回，是不需要提交的
 //	if table.base.manual {
-//		table.base.trigger(chef.DataRecoverTrigger, Map{"base": table.base.name, "table": table.name, "entity": items[0], "entities": items})
+//		table.base.trigger(data.RecoverTrigger, Map{"base": table.base.name, "table": table.name, "entity": items[0], "entities": items})
 //	} else {
-//		chef.Trigger(chef.DataRecoverTrigger, Map{"base": table.base.name, "table": table.name, "entity": items[0], "entities": items})
+//		data.Trigger(data.RecoverTrigger, Map{"base": table.base.name, "table": table.name, "entity": items[0], "entities": items})
 //	}
 //
 //	return affected
@@ -353,7 +354,7 @@ func (table *PostgresTable) Remove(args ...Any) Map {
 	//触发器
 
 	//注意这里，如果手动提交事务， 那这里直接返回，是不需要提交的
-	table.base.trigger(chef.DataRemoveTrigger, Map{"base": table.base.name, "table": table.name, "entity": item})
+	table.base.trigger(data.RemoveTrigger, Map{"base": table.base.name, "table": table.name, "entity": item})
 
 	return item
 }

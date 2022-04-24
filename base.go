@@ -7,6 +7,8 @@ import (
 
 	. "github.com/chefsgo/base"
 	"github.com/chefsgo/chef"
+	"github.com/chefsgo/data"
+	"github.com/chefsgo/log"
 
 	"strconv"
 	"strings"
@@ -26,9 +28,9 @@ type (
 
 		tx   *sql.Tx
 		exec PostgresExecutor
-		// cache chef.CacheBase
+		// cache data.CacheBase
 
-		//是否手动提交事务，否则为自动
+		//是否手动提交事务，默认false为自动
 		//当调用begin时， 自动变成手动提交事务
 		//triggers保存待提交的触发器，手动下有效
 		manual   bool
@@ -39,25 +41,26 @@ type (
 )
 
 //记录触发器
-func (base *PostgresBase) trigger(name string, values ...Any) {
+func (base *PostgresBase) trigger(name string, values ...Map) {
 	if base.manual {
 		//手动时保存触发器
 		var value Map
 		if len(values) > 0 {
-			if vv, ok := values[0].(Map); ok {
-				value = vv
-			}
+			value = values[0]
+			// if vv, ok := values[0].(Map); ok {
+			// 	value = vv
+			// }
 		}
 		base.triggers = append(base.triggers, postgresTrigger{Name: name, Value: value})
 	} else {
 		//自动时，直接触发
-		chef.Trigger(name, values...)
+		data.Trigger(name, values...)
 	}
 
 }
 
 //查询表，支持多个KEY遍历
-func (base *PostgresBase) tableConfig(name string) *chef.Table {
+func (base *PostgresBase) tableConfig(name string) *data.Table {
 	keys := []string{
 		fmt.Sprintf("%s.%s", base.name, name),
 		fmt.Sprintf("*.%s", name),
@@ -65,14 +68,14 @@ func (base *PostgresBase) tableConfig(name string) *chef.Table {
 	}
 
 	for _, key := range keys {
-		if cfg := chef.GetTable(key); cfg != nil {
+		if cfg := data.GetTable(key); cfg != nil {
 			return cfg
 		}
 	}
 
 	return nil
 }
-func (base *PostgresBase) viewConfig(name string) *chef.View {
+func (base *PostgresBase) viewConfig(name string) *data.View {
 	keys := []string{
 		fmt.Sprintf("%s.%s", base.name, name),
 		fmt.Sprintf("*.%s", name),
@@ -80,14 +83,14 @@ func (base *PostgresBase) viewConfig(name string) *chef.View {
 	}
 
 	for _, key := range keys {
-		if cfg := chef.GetView(key); cfg != nil {
+		if cfg := data.GetView(key); cfg != nil {
 			return cfg
 		}
 	}
 
 	return nil
 }
-func (base *PostgresBase) modelConfig(name string) *chef.Model {
+func (base *PostgresBase) modelConfig(name string) *data.Model {
 	keys := []string{
 		fmt.Sprintf("%s.%s", base.name, name),
 		fmt.Sprintf("*.%s", name),
@@ -95,7 +98,7 @@ func (base *PostgresBase) modelConfig(name string) *chef.Model {
 	}
 
 	for _, key := range keys {
-		if cfg := chef.GetModel(key); cfg != nil {
+		if cfg := data.GetModel(key); cfg != nil {
 			return cfg
 		}
 	}
@@ -112,7 +115,7 @@ func (base *PostgresBase) errorHandler(key string, err error, args ...Any) {
 		errors = append(errors, args...)
 
 		base.lastError = err
-		chef.Warning(errors...)
+		log.Warning(errors...)
 	}
 }
 
@@ -206,7 +209,7 @@ func (base *PostgresBase) Break(key string) {
 }
 
 //获取表对象
-func (base *PostgresBase) Table(name string) chef.DataTable {
+func (base *PostgresBase) Table(name string) data.DataTable {
 	if config := base.tableConfig(name); config != nil {
 		//模式，表名
 		schema, table, key := base.schema, name, "id"
@@ -237,7 +240,7 @@ func (base *PostgresBase) Table(name string) chef.DataTable {
 }
 
 //获取模型对象
-func (base *PostgresBase) View(name string) chef.DataView {
+func (base *PostgresBase) View(name string) data.DataView {
 	if config := base.viewConfig(name); config != nil {
 
 		//模式，表名
@@ -269,7 +272,7 @@ func (base *PostgresBase) View(name string) chef.DataView {
 }
 
 //获取模型对象
-func (base *PostgresBase) Model(name string) chef.DataModel {
+func (base *PostgresBase) Model(name string) data.DataModel {
 	if config := base.modelConfig(name); config != nil {
 
 		//模式，表名
@@ -361,7 +364,7 @@ func (base *PostgresBase) Submit() error {
 
 	//提交事务后,要把触发器都发掉
 	for _, trigger := range base.triggers {
-		chef.Trigger(trigger.Name, trigger.Value)
+		data.Trigger(trigger.Name, trigger.Value)
 	}
 
 	return nil
@@ -475,7 +478,7 @@ func (base *PostgresBase) packing(value Map) Map {
 			}
 		case Map:
 			{
-				b, e := chef.JSONMarshal(t)
+				b, e := chef.MarshalJSON(t)
 				if e == nil {
 					newValue[k] = string(b)
 				} else {
@@ -491,7 +494,7 @@ func (base *PostgresBase) packing(value Map) Map {
 				//
 				//newValue[k] = fmt.Sprintf("{%s}", strings.Join(ms, ","))
 
-				b, e := chef.JSONMarshal(t)
+				b, e := chef.MarshalJSON(t)
 				if e == nil {
 					newValue[k] = string(b)
 				} else {
@@ -534,7 +537,7 @@ func (base *PostgresBase) unpacking(keys []string, vals []interface{}) Map {
 //把MAP编译成sql查询条件
 func (base *PostgresBase) parsing(i int, args ...Any) (string, []interface{}, string, error) {
 
-	sql, val, odr, err := chef.ParseSQL(args...)
+	sql, val, odr, err := data.ParseSQL(args...)
 
 	if err != nil {
 		return "", nil, "", err

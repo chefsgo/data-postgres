@@ -1,7 +1,7 @@
 package data_postgres
 
 import (
-	"github.com/chefsgo/chef"
+	"github.com/chefsgo/data"
 	_ "github.com/lib/pq" //此包自动注册名为postgres的sql驱动
 )
 
@@ -14,13 +14,13 @@ var (
 )
 
 //返回驱动
-func Driver() chef.DataDriver {
+func Driver() data.Driver {
 	return &PostgresDriver{}
 }
 
 func init() {
 	driver := Driver()
-	chef.Register("postgres", driver)
-	chef.Register("postgressql", driver)
-	chef.Register("pgsql", driver)
+	data.Register("postgres", driver)
+	data.Register("postgressql", driver)
+	data.Register("pgsql", driver)
 }

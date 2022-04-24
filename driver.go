@@ -3,7 +3,7 @@ package data_postgres
 import (
 	"strings"
 
-	"github.com/chefsgo/chef"
+	"github.com/chefsgo/data"
 )
 
 var (
@@ -26,7 +26,7 @@ type (
 )
 
 //驱动连接
-func (drv *PostgresDriver) Connect(name string, config chef.DataConfig) (chef.DataConnect, error) {
+func (drv *PostgresDriver) Connect(name string, config data.Config) (data.Connect, error) {
 
 	//支持自定义的schema，相当于数据库名
 

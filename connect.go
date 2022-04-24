@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"sync"
 
-	"github.com/chefsgo/chef"
+	"github.com/chefsgo/data"
 )
 
 type (
@@ -12,7 +12,7 @@ type (
 	PostgresConnect struct {
 		mutex  sync.RWMutex
 		name   string
-		config chef.DataConfig
+		config data.Config
 		schema string
 
 		//数据库对象
@@ -31,10 +31,10 @@ func (connect *PostgresConnect) Open() error {
 }
 
 //健康检查
-func (connect *PostgresConnect) Health() (chef.DataHealth, error) {
+func (connect *PostgresConnect) Health() (data.Health, error) {
 	connect.mutex.RLock()
 	defer connect.mutex.RUnlock()
-	return chef.DataHealth{Workload: connect.actives}, nil
+	return data.Health{Workload: connect.actives}, nil
 }
 
 //关闭连接
@@ -49,7 +49,7 @@ func (connect *PostgresConnect) Close() error {
 	return nil
 }
 
-func (connect *PostgresConnect) Base() chef.DataBase {
+func (connect *PostgresConnect) Base() data.DataBase {
 	connect.mutex.Lock()
 	connect.actives++
 	connect.mutex.Unlock()
